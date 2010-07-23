@@ -11,7 +11,12 @@ import (
 
 const max_iteration = 100
 
-func getPixelAt(x0, y0 float64) image.RGBAColor  {
+type point struct {
+	x, y int
+	color image.RGBAColor
+}
+
+func getPixelAt(x0, y0 float64) image.RGBAColor {
 	iteration := 0; 
 	var x float64 =  0.0
 	var y float64 = 0.0
@@ -22,6 +27,7 @@ func getPixelAt(x0, y0 float64) image.RGBAColor  {
 		x = xtemp
 		iteration += 1
 	}
+
 	if iteration == max_iteration {
 		return image.RGBAColor{0, 0, 0, 255}
 	} else {
@@ -32,24 +38,35 @@ func getPixelAt(x0, y0 float64) image.RGBAColor  {
 	panic(1)
 }
 
-func Mandelbrot(im *image.RGBA, lineMin, lineMax int, vpx, vpy, d float64) {
+func Mandelbrot(im *image.RGBA, lineMin, lineMax int, vpx, vpy, d float64, ch chan<- point) {
 	width := float64(im.Width())
 	height := float64(im.Height())
 	for i := lineMin; i < lineMax; i++ {
 		for j := 0; j < im.Height(); j++ {
 			x0 := float64(i) / (width / d) - d / 2.0 + vpx
 			y0 := float64(j) / (height / d) - d / 2.0 + vpy
-			im.Pixel[i][j] = getPixelAt(y0, x0)
+			ch <- point{i, j, getPixelAt(y0, x0)}
 		}
 	}
 }
 
-func Start(im *image.RGBA, num int, vpx, vpy, d float64) {
+func Start(im *image.RGBA, num int, vpx, vpy, d float64, ch chan<- point) {
 	share := im.Height() / num
-	for i := 0; i < num - 1; i += 1 {
-		go Mandelbrot(im, i * share, (i+1) * share, vpx, vpy, d)
+	for i := 0; i < num; i += 1 {
+		go Mandelbrot(im, i * share, (i+1) * share, vpx, vpy, d, ch)
 	}
-	Mandelbrot(im, (num - 1) * share, num * share, vpx, vpy, d)
+
+}
+
+func handleChans(im *image.RGBA, ch <- chan point) {
+	counter := 0
+	pixCount := im.Height() * im.Width()
+
+	for counter < pixCount {
+		counter += 1
+		p := <- ch
+		im.Pixel[p.x][p.y] = p.color
+	}
 }
 
 func main() {
@@ -70,7 +87,13 @@ func main() {
 	}
 	
 
-	im := image.NewRGBA(*size, *size)	
-	Start(im, 2, *vpx, *vpy, *d)
+	im := image.NewRGBA(*size, *size)
+
+	ch := make(chan point, 100)
+	
+	Start(im, 2, *vpx, *vpy, *d, ch)
+	
+	handleChans(im, ch)
+
 	png.Encode(file, im)
 }
