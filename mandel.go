@@ -89,7 +89,7 @@ func main() {
 
 	im := image.NewRGBA(*size, *size)
 
-	ch := make(chan point, 100)
+	ch := make(chan point, 1000)
 	
 	Start(im, 2, *vpx, *vpy, *d, ch)
 	
