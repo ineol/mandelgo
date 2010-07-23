@@ -23,7 +23,7 @@ func getPixelAt(x0, y0 float64) image.RGBAColor  {
 		iteration += 1
 	}
 	if iteration == max_iteration {
-		return image.RGBAColor{uint8(0), uint8(0), uint8(0), uint8(255)}
+		return image.RGBAColor{0, 0, 0, 255}
 	} else {
 		color := uint8(255 - 255 * iteration / max_iteration)
 		return image.RGBAColor{color, color, color, 255}
