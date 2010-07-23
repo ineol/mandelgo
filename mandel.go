@@ -1,7 +1,6 @@
 package main
 
 import (
-//	"io"
 	"image"
         "os"
 	"image/png"
@@ -67,7 +66,7 @@ func main() {
 
 	file, err := os.Open(*filename + ".png", os.O_RDWR | os.O_CREAT, 0666)
 	if err != nil {
-		panic("error with opening file \"image.png\"")
+		panic("error with opening file \"" + *filename + "\"")
 	}
 	
 
