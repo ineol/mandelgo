@@ -7,13 +7,28 @@ import (
 	"fmt"
 	"runtime"
 	"flag"
+	"rand"
 )
 
 const max_iteration = 100
 
+var colors [100]image.RGBAColor
+var withColors bool
+
 type point struct {
 	x, y int
 	color image.RGBAColor
+}
+
+func uint8rand(r *rand.Rand) uint8 {
+	return uint8(r.Int() % 255)
+}
+func initColors(seed int64) {
+	fmt.Printf("%d ", seed)
+	r := rand.New(rand.NewSource(seed))
+	for i := 0; i < 100; i++ {
+		colors[i] = image.RGBAColor{uint8rand(r), uint8rand(r), uint8rand(r), 255}
+	}
 }
 
 func getPixelAt(x0, y0 float64) image.RGBAColor {
@@ -31,11 +46,20 @@ func getPixelAt(x0, y0 float64) image.RGBAColor {
 	if iteration == max_iteration {
 		return image.RGBAColor{0, 0, 0, 255}
 	} else {
-		color := uint8(255 - 255 * iteration / max_iteration)
-		return image.RGBAColor{color, color, color, 255}
+		return getColor(iteration)
 	}
 	fmt.Printf("This is impossible\n")
 	panic(1)
+}
+
+func getColor(iteration int) image.RGBAColor {
+	if withColors {
+		return colors[iteration % 100]
+	} else {
+		color := uint8(255 - 255 * iteration / max_iteration)
+		return image.RGBAColor{color, color, color, 255}
+	}
+	panic("never executed")
 }
 
 func Mandelbrot(im *image.RGBA, lineMin, lineMax int, vpx, vpy, d float64, ch chan<- point) {
@@ -76,10 +100,17 @@ func main() {
 	d := flag.Float64("size", 2, "size of the represented part of the plane")
 	filename := flag.String("name", "image", "name of the image file produced (w/o extension")
 	numberOfProcs := flag.Int("procs", 2, "number of procs to use")
+	seed := flag.Int64("seed", 42, "seed for the random number generator")
+	cols := flag.Bool("with-colors", false, "whether there is colors")
 
 	flag.Parse()
 
 	runtime.GOMAXPROCS(*numberOfProcs)
+	
+	withColors = *cols
+	if *cols {
+		initColors(*seed)
+	}
 
 	file, err := os.Open(*filename + ".png", os.O_RDWR | os.O_CREAT, 0666)
 	if err != nil {
